@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package {{.Package}};
+
+message EventHeader {
+    string event_id = 1;       // 事件 ID
+    string event_type = 2;     // 事件类型
+    string timestamp = 3;      // 事件时间戳
+    repeated AggregateInfo aggregates = 4; // 关联的聚合根信息
+}
+
+// 聚合根信息
+message AggregateInfo {
+    string id = 1;   // 聚合根 ID
+    string type = 2; // 聚合根类型
+}

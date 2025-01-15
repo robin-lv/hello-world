@@ -1,0 +1,206 @@
+{/* 定义处理前置注释的独立模板 */}}
+{{ define "leading_comments_tmpl" }}
+    {{- if .LeadingComments}}
+        // {{.LeadingComments}}
+    {{end}}
+    {{- if .LeadingDetachedComments}}
+        /*
+        {{- range $comment := .LeadingDetachedComments}}
+            * {{$comment}}
+        {{- end}}
+        */
+    {{end}}
+{{ end }}
+
+{{/* 定义处理 TrailingComments 的独立模板 */}}
+{{ define "trailing_comments_tmpl" }}
+    {{- if .TrailingComments}}
+        // {{.TrailingComments}}
+    {{end}}
+{{ end }}
+
+{{/* 定义处理消息的模板 */}}
+{{ define "message_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    message {{.Name}} {
+    {{- template "trailing_comments_tmpl" .CommentSet}}
+    {{- range $field := .Fields}}
+        {{- if $field.IsMap}}
+            {{- template "map_field_tmpl" $field}}
+        {{- else}}
+            {{- template "field_tmpl" $field}}
+        {{- end}}
+    {{- end}}
+    {{- range $nestedMessage := .NestedMessages}}
+        {{- template "message_tmpl" $nestedMessage}}
+    {{- end}}
+    {{- range $enum := .Enums}}
+        {{- template "enum_tmpl" $enum}}
+    {{- end}}
+    {{- range $oneof := .Oneofs}}
+        {{- template "oneof_tmpl" $oneof}}
+    {{- end}}
+    {{- if .Extensions}}
+        {{- template "extensions_tmpl" .Extensions}}
+    {{- end}}
+    {{- if .Reserved}}
+        {{- template "reserved_tmpl" .Reserved}}
+    {{- end}}
+    {{- if .Options}}
+        {{- template "message_options_tmpl" .Options}}
+    {{- end}}
+    }
+{{ end }}
+
+{{/* 定义处理字段的模板 */}}
+{{ define "field_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    {{.Type}} {{.Name}} = {{.Index}};
+    {{- if .Options}}
+        {{- template "field_options_tmpl" .Options}}
+    {{- end}}
+    {{- template "trailing_comments_tmpl" .CommentSet}}
+{{ end }}
+
+{{/* 定义处理 map 字段的模板 */}}
+{{ define "map_field_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    map<{{.KeyType}}, {{.ValueType}}> {{.Name}} = {{.Index}};
+    {{- if .Options}}
+        {{- template "field_options_tmpl" .Options}}
+    {{- end}}
+    {{- template "trailing_comments_tmpl" .CommentSet}}
+{{ end }}
+
+{{/* 定义处理枚举的模板 */}}
+{{ define "enum_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    enum {{.Name}} {
+    {{- template "trailing_comments_tmpl" .CommentSet}}
+    {{- range $value := .Values}}
+        {{- template "enum_value_tmpl" $value}}
+    {{- end}}
+    {{- if .Options}}
+        {{- template "enum_options_tmpl" .Options}}
+    {{- end}}
+    }
+{{ end }}
+
+{{/* 定义处理枚举值的模板 */}}
+{{ define "enum_value_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    {{.Name}} = {{.Number}};
+    {{- if .Options}}
+        {{- template "enum_value_options_tmpl" .Options}}
+    {{- end}}
+    {{- template "trailing_comments_tmpl" .CommentSet}}
+{{ end }}
+
+{{/* 定义处理 oneof 的模板 */}}
+{{ define "oneof_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    oneof {{.Name}} {
+    {{- range $field := .Fields}}
+        {{- template "field_tmpl" $field}}
+    {{- end}}
+    }
+{{ end }}
+
+{{/* 定义处理扩展的模板 */}}
+{{ define "extensions_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    extensions {{.Start}} to {{.End}};
+{{ end }}
+
+{{/* 定义处理扩展字段的模板 */}}
+{{ define "extension_field_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    extend {{.ExtendedMessage}} {
+    {{.Type}} {{.Name}} = {{.Index}};
+    }
+{{ end }}
+
+{{/* 定义处理保留字段的模板 */}}
+{{ define "reserved_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    reserved {{- range $index, $value := .Numbers}}{{$value}}, {{- end}};
+    reserved {{- range $index, $value := .Names}}"{{$value}}", {{- end}};
+{{ end }}
+
+{{/* 定义处理服务的模板 */}}
+{{ define "service_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    service {{.Name}} {
+    {{- template "trailing_comments_tmpl" .CommentSet}}
+    {{- range $method := .Methods}}
+        {{- template "method_tmpl" $method}}
+    {{- end}}
+    {{- if .Options}}
+        {{- template "service_options_tmpl" .Options}}
+    {{- end}}
+    }
+{{ end }}
+
+{{/* 定义处理方法的模板 */}}
+{{ define "method_tmpl" }}
+    {{- template "leading_comments_tmpl" .CommentSet}}
+    {{- if .IsClientStreaming}}
+        {{- if .IsServerStreaming}}
+            rpc {{.Name}} (stream {{.InputType}}) returns (stream {{.OutputType}}) {
+        {{- else}}
+            rpc {{.Name}} (stream {{.InputType}}) returns ({{.OutputType}}) {
+        {{- end}}
+    {{- else}}
+        {{- if .IsServerStreaming}}
+            rpc {{.Name}} ({{.InputType}}) returns (stream {{.OutputType}}) {
+        {{- else}}
+            rpc {{.Name}} ({{.InputType}}) returns ({{.OutputType}}) {
+        {{- end}}
+    {{- end}}
+    {{- if .Options}}
+        {{- template "method_options_tmpl" .Options}}
+    {{- end}}
+    }{{- template "trailing_comments_tmpl" .CommentSet}}
+{{ end }}
+
+{{/* 定义处理消息扩展的模板 */}}
+{{ define "message_options_tmpl" }}
+    {{- range $option := .}}
+        option ({{$option.Name}}) = {{$option.Value}};
+    {{- end}}
+{{ end }}
+
+{{/* 定义处理字段扩展的模板 */}}
+{{ define "field_options_tmpl" }}
+    {{- range $option := .}}
+        [{{$option.Name}} = {{$option.Value}}];
+    {{- end}}
+{{ end }}
+
+{{/* 定义处理枚举扩展的模板 */}}
+{{ define "enum_options_tmpl" }}
+    {{- range $option := .}}
+        option ({{$option.Name}}) = {{$option.Value}};
+    {{- end}}
+{{ end }}
+
+{{/* 定义处理枚举值扩展的模板 */}}
+{{ define "enum_value_options_tmpl" }}
+    {{- range $option := .}}
+        [{{$option.Name}} = {{$option.Value}}];
+    {{- end}}
+{{ end }}
+
+{{/* 定义处理服务扩展的模板 */}}
+{{ define "service_options_tmpl" }}
+    {{- range $option := .}}
+        option ({{$option.Name}}) = {{$option.Value}};
+    {{- end}}
+{{ end }}
+
+{{/* 定义处理方法扩展的模板 */}}
+{{ define "method_options_tmpl" }}
+    {{- range $option := .}}
+        option ({{$option.Name}}) = {{$option.Value}};
+    {{- end}}
+{{ end }}

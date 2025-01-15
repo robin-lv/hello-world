@@ -11,17 +11,19 @@ import (
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
-var (
-	outputDir  string
-	customOpt  string
-	protoFiles []string
-)
+var rootCmd = &cobra.Command{
+	Use:   "protoc-gen-nine",
+	Short: "A protoc plugin named 'nine'",
+	Long:  "A custom protoc plugin named 'nine' to generate code based on .proto files",
+}
 
 func main() {
-	var rootCmd = &cobra.Command{
-		Use:   "protoc-gen-custom",
-		Short: "A custom protoc plugin",
-		Long:  "A custom protoc plugin to generate code based on .proto files",
+
+	// Add generate subcommand
+	var generateCmd = &cobra.Command{
+		Use:   "generate",
+		Short: "Generate code from .proto files",
+		Long:  "Generate code from .proto files using the protoc-gen-nine plugin",
 		Run: func(cmd *cobra.Command, args []string) {
 			// Read the CodeGeneratorRequest from stdin
 			input, err := io.ReadAll(os.Stdin)
@@ -47,11 +49,10 @@ func main() {
 		},
 	}
 
-	// Add flags
-	rootCmd.PersistentFlags().StringVar(&outputDir, "output_dir", ".", "Output directory for generated files")
-	rootCmd.PersistentFlags().StringVar(&customOpt, "custom_opt", "", "Custom option for the plugin")
-	rootCmd.PersistentFlags().StringSliceVar(&protoFiles, "proto_files", []string{}, "List of .proto files")
+	// Add generate subcommand to the root command
+	rootCmd.AddCommand(generateCmd)
 
+	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalf("Error executing command: %v", err)
 	}
@@ -64,7 +65,7 @@ func generateCode(request *pluginpb.CodeGeneratorRequest) *pluginpb.CodeGenerato
 	for _, file := range request.GetProtoFile() {
 		// Get the file name without extension
 		fileName := file.GetName()
-		outputFileName := fmt.Sprintf("%s/%s_custom_output.txt", outputDir, fileName[:len(fileName)-len(".proto")])
+		outputFileName := fmt.Sprintf("%s/%s_nine_output.txt", outputDir, fileName[:len(fileName)-len(".proto")])
 
 		// Generate content
 		content := fmt.Sprintf("Generated code for %s with custom option: %s\n", fileName, customOpt)

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package {{.Package}};
+
+{{- range $import := .Imports}}
+    import "{{$import}}";
+{{- end}}
+
+{{- range $message := .Messages}}
+    {{ template "message_tmpl" $message }}
+    {{ template "message_evt_tmpl" $message }}
+{{- end}}
+
+
+{{/* 定义 message_evt_tmpl，用于渲染带后缀的 message */}}
+{{ define "message_evt_tmpl" }}
+    message {{.Name | replace "Event" "Evt"}} {
+    EventHeader head = 1; // 事件头
+    {{.Name}} content = 2; // 事件内容
+    }
+{{ end }}
