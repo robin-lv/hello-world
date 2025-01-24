@@ -5,6 +5,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/types/pluginpb"
 	"os"
+	"strings"
 	"text/template"
 )
 
@@ -85,4 +86,44 @@ func main() {
 	}
 
 	fmt.Println("Go file generated successfully:", outputFile)
+}
+
+//go:embed ../protoc-plugins/example/gen_doamin_event/event_xxxx.proto.tmpl
+var domainpbevent string
+
+func generate(file *protomodels.File, plugin *protogen.Plugin) error {
+	// 生成输出文件，文件名与源文件同名
+	outputFile := plugin.NewGeneratedFile(
+		fmt.Sprintf("%s.proto", file.GeneratedFilenamePrefix),
+		file.GoImportPath,
+	)
+
+	// 处理文件中的消息
+	for _, message := range file.Messages {
+		// 检查消息名称是否以 "Event" 结尾
+		if !strings.HasSuffix(message.Name, "Event") {
+			continue
+		}
+
+		// 渲染模板并写入输出文件
+		renderTemplate(outputFile, domainpbevent, message)
+	}
+	return nil
+}
+
+// renderTemplate 渲染模板并写入输出文件
+func renderTemplate(outputFile *protogen.GeneratedFile, tmplContent string, data *protomodels.Message) {
+	// 创建模板并加载子模板
+	tmpl := proto_plugins2.NewTemplate("domain-event-tmpl")
+	proto_plugins2.ParseProtoTemplate(tmpl, tmplContent)
+	// 执行模板
+	if err := tmpl.Execute(outputFile, data); err != nil {
+		panic(fmt.Sprintf("failed to execute template: %v", err))
+	}
+}
+
+func main() {
+	if err := proto_plugins.Plugin(generate); err != nil {
+		panic(err)
+	}
 }

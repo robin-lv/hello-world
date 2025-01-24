@@ -1,4 +1,4 @@
-package protomodels
+package models
 
 import (
 	"google.golang.org/protobuf/compiler/protogen"
